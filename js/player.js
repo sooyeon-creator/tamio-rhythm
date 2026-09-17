@@ -216,7 +216,10 @@ const Player = (() => {
 
   function draw(now) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const r = 16 * devicePixelRatio;
+    // Note width tracks the lane width (slightly narrower than the lane
+    // itself) instead of a fixed pixel size, so notes read clearly at any
+    // lane count/screen size.
+    const r = (canvas.width / laneCount) * 0.4;
     for (const note of notes) {
       // Once a note is resolved (hit or missed) and its action point has
       // reached the hit line, it's erased immediately rather than lingering.
