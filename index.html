@@ -11,6 +11,9 @@
 </head>
 <body>
 
+<!-- Full-screen loading takeover: just the sun, nothing else, whenever the app is waiting on something -->
+<div id="globalLoader" class="global-loader" hidden></div>
+
 <!-- HOME -->
 <main id="view-home" class="home">
   <h1>Tamio Rhythm</h1>
@@ -18,7 +21,7 @@
 
   <section class="card">
     <h2>영상 목록</h2>
-    <ul id="repoVideoList" class="chart-list"><li class="loading-row"><svg class="spinner-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg><span>불러오는 중...</span></li></ul>
+    <ul id="repoVideoList" class="chart-list"></ul>
     <p class="hint">이 목록은 저장소(videos/)에 올려둔 영상입니다. 컴퓨터에서 올려두면 폰에서는 고르기만 하면 됩니다.</p>
   </section>
 
@@ -55,7 +58,6 @@
   <div id="editorCenterMsg" class="center-msg">
     <h2>비트맵 에디터</h2>
     <p class="hint">재생을 누르고, 박자에 맞춰 6개 레인을 탭하세요.<br/>길게 누르면 홀드 노트, 누른 채로 옆 레인으로 밀면 슬라이드 노트가 됩니다.<br/>언제든 상단의 "저장" 버튼으로 저장할 수 있습니다.</p>
-    <div id="editorLoading" class="loading-row" hidden></div>
     <button id="editorStart" class="btn primary">시작</button>
   </div>
   <div id="editorNotePanel" class="note-panel" hidden>

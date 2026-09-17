@@ -71,6 +71,13 @@ input[type="file"] { color: var(--text); width: 100%; }
   padding: 6px 0; color: var(--muted); font-size: 14px;
 }
 
+.global-loader {
+  position: fixed; inset: 0; z-index: 1000;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+}
+.global-loader[hidden] { display: none; }
+
 .btn {
   flex: 1;
   padding: 14px;

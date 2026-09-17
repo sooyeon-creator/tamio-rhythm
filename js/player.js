@@ -276,6 +276,7 @@ const Player = (() => {
     window.addEventListener("resize", resizeCanvas);
 
     const renderStartScreen = () => {
+      Loader.hide();
       const best = Storage.getBest(chart.key);
       centerMsg.innerHTML = `
         <h2>플레이</h2>
@@ -288,11 +289,12 @@ const Player = (() => {
     };
 
     centerMsg.hidden = false;
+    centerMsg.innerHTML = "";
     video.src = source.url;
     if (video.readyState >= 2) {
       renderStartScreen();
     } else {
-      centerMsg.innerHTML = `<h2>플레이</h2>${Spinner.row(22, "영상 불러오는 중...")}`;
+      Loader.show();
       video.addEventListener("loadeddata", renderStartScreen, { once: true });
     }
 
@@ -308,6 +310,7 @@ const Player = (() => {
     if (rafId) cancelAnimationFrame(rafId);
     rafId = null;
     Haptics.holdStop();
+    Loader.hide();
     window.removeEventListener("resize", resizeCanvas);
     if (video) {
       video.pause();

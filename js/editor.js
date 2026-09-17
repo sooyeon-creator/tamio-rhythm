@@ -225,18 +225,13 @@ const Editor = (() => {
     centerMsg.querySelector("p").textContent =
       "재생을 누르고, 박자에 맞춰 6개 레인을 탭하세요. 길게 누르면 홀드 노트, 누른 채로 옆 레인으로 밀면 슬라이드 노트가 됩니다. 언제든 상단의 \"저장\" 버튼으로 저장할 수 있습니다.";
 
-    const loadingEl = el("editorLoading");
-    const startBtn = el("editorStart");
-    const showLoading = () => { loadingEl.innerHTML = Spinner.row(22, "영상 불러오는 중..."); loadingEl.hidden = false; startBtn.hidden = true; };
-    const showReady = () => { loadingEl.hidden = true; startBtn.hidden = false; };
-
     video.src = source.url;
     video.currentTime = 0;
     if (video.readyState >= 2) {
-      showReady();
+      Loader.hide();
     } else {
-      showLoading();
-      video.addEventListener("loadeddata", showReady, { once: true });
+      Loader.show();
+      video.addEventListener("loadeddata", Loader.hide, { once: true });
     }
 
     buildLanes();
@@ -312,6 +307,7 @@ const Editor = (() => {
   function teardown(after) {
     if (rafId) cancelAnimationFrame(rafId);
     rafId = null;
+    Loader.hide();
     window.removeEventListener("resize", resizeCanvas);
     if (video) {
       video.pause();

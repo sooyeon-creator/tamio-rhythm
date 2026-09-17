@@ -70,7 +70,7 @@
 
   async function loadRepoVideos() {
     const listEl = document.getElementById("repoVideoList");
-    listEl.innerHTML = `<li>${Spinner.row(20, "불러오는 중...")}</li>`;
+    Loader.show();
     try {
       const res = await fetch("videos/manifest.json", { cache: "no-store" });
       if (!res.ok) throw new Error("no manifest");
@@ -96,6 +96,8 @@
       }
     } catch {
       listEl.innerHTML = '<li class="hint">videos/manifest.json을 불러오지 못했습니다.</li>';
+    } finally {
+      Loader.hide();
     }
   }
 
