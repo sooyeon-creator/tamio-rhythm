@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+<title>Tamio Rhythm</title>
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+<meta name="theme-color" content="#0b0b14" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- HOME -->
+<main id="view-home" class="home">
+  <h1>Tamio Rhythm</h1>
+  <p class="subtitle">영상으로 비트맵을 만들고, 그대로 플레이하세요.</p>
+
+  <section class="card">
+    <h2>1. 영상 선택</h2>
+    <input id="videoFile" type="file" accept="video/*" />
+    <p id="videoInfo" class="hint">영상을 선택하면 그 영상 이름으로 비트맵이 저장/불러오기 됩니다.</p>
+  </section>
+
+  <section class="card actions">
+    <button id="openEditor" class="btn primary" disabled>비트맵 에디터 열기</button>
+    <button id="openPlayer" class="btn" disabled>플레이하기</button>
+  </section>
+
+  <section class="card">
+    <h2>저장된 비트맵</h2>
+    <ul id="chartList" class="chart-list"><li class="hint">아직 저장된 비트맵이 없습니다.</li></ul>
+    <p class="hint">플레이하려면 같은 영상 파일을 다시 선택해주세요.</p>
+  </section>
+</main>
+
+<!-- EDITOR -->
+<div id="view-editor" class="stage-wrap" hidden>
+  <video id="editorVideo" class="stage-video" playsinline muted></video>
+  <div class="hit-line"></div>
+  <div id="editorLanes" class="lanes"></div>
+  <div class="top-bar">
+    <button id="editorBack" class="btn-small">← 나가기</button>
+    <span class="stat"><span id="editorTime">0.00</span>s / <span id="editorNoteCount">0</span> notes</span>
+    <button id="editorPlayPause" class="btn-small">▶ 재생</button>
+    <button id="editorEdit" class="btn-small">노트 편집</button>
+    <button id="editorSave" class="btn-small">저장</button>
+  </div>
+  <div id="editorCenterMsg" class="center-msg">
+    <h2>비트맵 에디터</h2>
+    <p class="hint">재생을 누르고, 박자에 맞춰 6개 레인을 탭하세요.<br/>길게 누르면 홀드 노트, 누른 채로 옆 레인으로 밀면 슬라이드 노트가 됩니다.<br/>언제든 상단의 "저장" 버튼으로 저장할 수 있습니다.</p>
+    <button id="editorStart" class="btn primary">시작</button>
+  </div>
+  <div id="editorNotePanel" class="note-panel" hidden>
+    <div class="note-panel-header">
+      <h3>노트 목록</h3>
+      <button id="editorNotePanelClose" class="btn-small">닫기</button>
+    </div>
+    <ul id="editorNoteRows" class="note-rows"></ul>
+    <button id="editorClearAll" class="btn danger">전체 삭제</button>
+  </div>
+</div>
+
+<!-- PLAYER -->
+<div id="view-player" class="stage-wrap" hidden>
+  <video id="playerVideo" class="stage-video" playsinline muted></video>
+  <canvas id="playerCanvas" class="stage-canvas"></canvas>
+  <div class="hit-line"></div>
+  <div id="playerLanes" class="lanes"></div>
+  <div class="top-bar">
+    <button id="playerBack" class="btn-small">← 나가기</button>
+    <span class="stat">Score <span id="playerScore">0</span> · Combo <span id="playerCombo">0</span></span>
+  </div>
+  <div id="judgmentToast" class="judgment-toast"></div>
+  <div id="playerCenterMsg" class="center-msg">
+    <h2>플레이</h2>
+    <p id="playerBestHint" class="hint"></p>
+    <button id="playerStart" class="btn primary">시작</button>
+  </div>
+</div>
+
+<script src="js/storage.js"></script>
+<script src="js/haptics.js"></script>
+<script src="js/editor.js"></script>
+<script src="js/player.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
