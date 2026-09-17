@@ -1,4 +1,4 @@
-const CACHE = "tamio-rhythm-v1";
+const CACHE = "tamio-rhythm-v2";
 const SHELL = [
   "./",
   "./index.html",
@@ -26,9 +26,21 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
+// Network-first for the app shell so a new deploy shows up on the very next
+// reload instead of waiting on a stale cache; falls back to cache when
+// offline. Videos are never cached here (they're large and change often).
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+  const url = new URL(event.request.url);
+  if (url.pathname.includes("/videos/")) return;
+
   event.respondWith(
-    caches.match(event.request).then((cached) => cached || fetch(event.request))
+    fetch(event.request)
+      .then((response) => {
+        const copy = response.clone();
+        caches.open(CACHE).then((cache) => cache.put(event.request, copy));
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
