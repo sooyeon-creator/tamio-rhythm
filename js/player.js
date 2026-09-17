@@ -271,21 +271,31 @@ const Player = (() => {
     toastEl = el("judgmentToast");
     centerMsg = el("playerCenterMsg");
 
-    video.src = source.url;
     buildLanes();
     resizeCanvas();
     window.addEventListener("resize", resizeCanvas);
 
-    const best = Storage.getBest(chart.key);
+    const renderStartScreen = () => {
+      const best = Storage.getBest(chart.key);
+      centerMsg.innerHTML = `
+        <h2>플레이</h2>
+        <p class="hint">${best ? `Best Score ${best.score} · Accuracy ${best.accuracy.toFixed(1)}%` : "아직 기록이 없습니다"}</p>
+        <button id="playerStart" class="btn primary">시작</button>
+        <button id="playerExitTop" class="btn">나가기</button>
+      `;
+      el("playerStart").onclick = start;
+      el("playerExitTop").onclick = () => { Fullscreen.exit(); teardown(() => onDone()); };
+    };
+
     centerMsg.hidden = false;
-    centerMsg.innerHTML = `
-      <h2>플레이</h2>
-      <p class="hint">${best ? `Best Score ${best.score} · Accuracy ${best.accuracy.toFixed(1)}%` : "아직 기록이 없습니다"}</p>
-      <button id="playerStart" class="btn primary">시작</button>
-      <button id="playerExitTop" class="btn">나가기</button>
-    `;
-    el("playerStart").onclick = start;
-    el("playerExitTop").onclick = () => { Fullscreen.exit(); teardown(() => onDone()); };
+    video.src = source.url;
+    if (video.readyState >= 2) {
+      renderStartScreen();
+    } else {
+      centerMsg.innerHTML = `<h2>플레이</h2>${Spinner.row(22, "영상 불러오는 중...")}`;
+      video.addEventListener("loadeddata", renderStartScreen, { once: true });
+    }
+
     el("playerBack").onclick = () => { Fullscreen.exit(); teardown(() => onDone()); };
 
     lanesEl.onpointerdown = onPointerDown;

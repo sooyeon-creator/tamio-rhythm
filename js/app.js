@@ -70,6 +70,7 @@
 
   async function loadRepoVideos() {
     const listEl = document.getElementById("repoVideoList");
+    listEl.innerHTML = `<li>${Spinner.row(20, "불러오는 중...")}</li>`;
     try {
       const res = await fetch("videos/manifest.json", { cache: "no-store" });
       if (!res.ok) throw new Error("no manifest");
