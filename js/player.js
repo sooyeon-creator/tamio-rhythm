@@ -112,9 +112,11 @@ const Player = (() => {
     setLaneLit(lane, true);
     if (!note) return;
     note.judged = true;
-    applyJudgment(judge(now - note.time));
-    if (note.type === "hold" || note.type === "slide") {
+    const startJudgment = judge(now - note.time);
+    applyJudgment(startJudgment);
+    if ((note.type === "hold" || note.type === "slide") && startJudgment !== "miss") {
       heldPointers.set(e.pointerId, { note, lane });
+      Haptics.holdStart((note.holdEnd - now) * 1000);
     }
   }
 
@@ -127,6 +129,7 @@ const Player = (() => {
     const held = heldPointers.get(e.pointerId);
     if (!held) return;
     heldPointers.delete(e.pointerId);
+    Haptics.holdStop();
     const { note } = held;
     const now = video.currentTime;
     if (note.type === "hold") {
@@ -150,6 +153,7 @@ const Player = (() => {
       const endTime = held.note.holdEnd;
       if (now - endTime > MISS_MS / 1000) {
         heldPointers.delete(pointerId);
+        Haptics.holdStop();
       }
     }
   }
@@ -224,6 +228,7 @@ const Player = (() => {
   function finish() {
     running = false;
     if (rafId) cancelAnimationFrame(rafId);
+    Haptics.holdStop();
     const total = counts.perfect + counts.good + counts.miss;
     const accuracy = total ? ((counts.perfect + counts.good * 0.5) / total) * 100 : 0;
     const result = { score, maxCombo, accuracy, counts, updatedAt: Date.now() };
@@ -302,6 +307,7 @@ const Player = (() => {
     running = false;
     if (rafId) cancelAnimationFrame(rafId);
     rafId = null;
+    Haptics.holdStop();
     window.removeEventListener("resize", resizeCanvas);
     if (video) {
       video.pause();
