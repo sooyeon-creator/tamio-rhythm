@@ -11,7 +11,7 @@
   --miss: #ff5c5c;
 }
 
-* { box-sizing: border-box; }
+* { box-sizing: border-box; touch-action: manipulation; }
 
 html, body {
   margin: 0;

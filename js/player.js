@@ -195,20 +195,10 @@ const Player = (() => {
         ctx.roundRect(x - r, yStart - r * 0.4, r * 2, r * 0.8, r * 0.4);
         ctx.fill();
       } else if (note.type === "slide") {
-        const x2 = laneCenterX(note.toLane);
-        const yStart = yForTime(note.time, now);
-        const yEnd = yForTime(note.holdEnd, now);
-        ctx.strokeStyle = "rgba(255,110,199,0.6)";
-        ctx.lineWidth = r * 0.8;
-        ctx.lineCap = "round";
-        ctx.beginPath();
-        ctx.moveTo(x, yStart);
-        ctx.lineTo(x2, yEnd);
-        ctx.stroke();
-        ctx.fillStyle = "#ff6ec7";
-        ctx.beginPath();
-        ctx.arc(x, yStart, r * 0.7, 0, Math.PI * 2);
-        ctx.fill();
+        SlideRender.draw(ctx, note, now, {
+          laneCenterX, yForTime, lineWidth: r * 0.8,
+          stroke: "rgba(255,110,199,0.6)", fill: "#ff6ec7",
+        });
       }
     }
   }

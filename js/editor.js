@@ -74,40 +74,21 @@ const Editor = (() => {
         ctx.roundRect(x - r, yStart - r * 0.4, r * 2, r * 0.8, r * 0.4);
         ctx.fill();
       } else if (note.type === "slide") {
-        const x2 = laneCenterX(note.toLane);
-        const yStart = yForTime(note.time, now);
-        const yEnd = yForTime(note.holdEnd, now);
-        ctx.strokeStyle = "rgba(255,110,199,0.6)";
-        ctx.lineWidth = r * 0.8;
-        ctx.lineCap = "round";
-        ctx.beginPath();
-        ctx.moveTo(x, yStart);
-        ctx.lineTo(x2, yEnd);
-        ctx.stroke();
-        ctx.fillStyle = "#ff6ec7";
-        ctx.beginPath();
-        ctx.arc(x, yStart, r * 0.7, 0, Math.PI * 2);
-        ctx.fill();
+        SlideRender.draw(ctx, note, now, {
+          laneCenterX, yForTime, lineWidth: r * 0.8,
+          stroke: "rgba(255,110,199,0.6)", fill: "#ff6ec7",
+        });
       }
     }
 
-    // Live preview of whatever is currently being held/dragged, drawn right
-    // at the hit line so a slide's path is visible while it's still moving.
-    const hitLineY = canvas.height * 0.86;
+    // Live preview of whatever is currently being held/dragged: the actual
+    // staircase recorded so far, ending live at "now" in the current lane.
     for (const touch of activeTouches.values()) {
-      const x1 = laneCenterX(touch.lane);
-      const x2 = laneCenterX(touch.currentLane);
-      ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = r * 0.7;
-      ctx.lineCap = "round";
-      ctx.beginPath();
-      ctx.moveTo(x1, hitLineY);
-      ctx.lineTo(x2, hitLineY);
-      ctx.stroke();
-      ctx.fillStyle = "#ffffff";
-      ctx.beginPath();
-      ctx.arc(x2, hitLineY, r * 0.8, 0, Math.PI * 2);
-      ctx.fill();
+      const provisional = { lane: touch.path[0].lane, time: touch.path[0].time, toLane: touch.currentLane, holdEnd: now, path: touch.path };
+      SlideRender.draw(ctx, provisional, now, {
+        laneCenterX, yForTime, lineWidth: r * 0.7,
+        stroke: "#ffffff", fill: "#ffffff",
+      });
     }
   }
 
@@ -122,7 +103,8 @@ const Editor = (() => {
     const lane = laneFromPoint(e.clientX, e.clientY);
     if (lane === null) return;
     e.preventDefault();
-    activeTouches.set(e.pointerId, { lane, startTime: video.currentTime, currentLane: lane });
+    const startTime = video.currentTime;
+    activeTouches.set(e.pointerId, { lane, startTime, currentLane: lane, path: [{ lane, time: startTime }] });
     setLaneLit(lane, true);
   }
 
@@ -134,6 +116,7 @@ const Editor = (() => {
     if (lane !== null && lane !== touch.currentLane) {
       setLaneLit(touch.currentLane, false);
       touch.currentLane = lane;
+      touch.path.push({ lane, time: video.currentTime });
       setLaneLit(lane, true);
     }
   }
@@ -148,7 +131,7 @@ const Editor = (() => {
 
     let note;
     if (touch.currentLane !== touch.lane) {
-      note = { lane: touch.lane, time: touch.startTime, type: "slide", toLane: touch.currentLane, holdEnd: endTime };
+      note = { lane: touch.lane, time: touch.startTime, type: "slide", toLane: touch.currentLane, holdEnd: endTime, path: touch.path };
     } else if (durationMs >= HOLD_THRESHOLD_MS) {
       note = { lane: touch.lane, time: touch.startTime, type: "hold", holdEnd: endTime };
     } else {
