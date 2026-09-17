@@ -62,7 +62,7 @@
         ? `"${source.name}" — 저장된 비트맵 ${chart.notes.length}개 노트 발견`
         : `"${source.name}" — 아직 비트맵이 없습니다. 에디터에서 만들어보세요.`;
     }
-    document.querySelectorAll("#repoVideoList li.selectable").forEach((li) => {
+    document.querySelectorAll("#repoVideoList li.selectable, #deviceVideoList li.selectable").forEach((li) => {
       li.classList.toggle("selected", li.dataset.key === source.key);
     });
     updateButtons();
@@ -101,10 +101,59 @@
     }
   }
 
+  async function loadDeviceVideos() {
+    const listEl = document.getElementById("deviceVideoList");
+    const videos = await VideoStore.listVideos();
+    if (!videos.length) {
+      listEl.innerHTML = '<li class="hint">아직 저장된 영상이 없습니다. 아래에서 파일을 선택하고 저장해보세요.</li>';
+      return;
+    }
+    listEl.innerHTML = "";
+    for (const v of videos) {
+      const key = v.key;
+      const li = document.createElement("li");
+      li.className = "selectable";
+      li.dataset.key = key;
+      const chart = Storage.getChart(key);
+      const best = Storage.getBest(key);
+      const meta = chart ? `${chart.notes.length} notes${best ? ` · Best ${best.score}` : ""}` : "비트맵 없음";
+      li.innerHTML = `<span>${v.name}</span><span class="hint">${meta}</span>`;
+      li.onclick = async () => {
+        const record = await VideoStore.getVideo(key);
+        if (!record) return;
+        selectSource({ key, name: record.name, url: URL.createObjectURL(record.blob), isBlob: true });
+      };
+      const del = document.createElement("button");
+      del.textContent = "삭제";
+      del.onclick = async (e) => {
+        e.stopPropagation();
+        await VideoStore.deleteVideo(key);
+        loadDeviceVideos();
+      };
+      li.appendChild(del);
+      listEl.appendChild(li);
+    }
+  }
+
+  let pendingFile = null;
+
   document.getElementById("videoFile").addEventListener("change", (e) => {
     const file = e.target.files[0] || null;
+    pendingFile = file;
+    document.getElementById("saveToDevice").hidden = !file;
     if (!file) return;
     selectSource({ key: Storage.keyFor(file), name: file.name, url: URL.createObjectURL(file), isBlob: true });
+  });
+
+  document.getElementById("saveToDevice").addEventListener("click", async () => {
+    if (!pendingFile) return;
+    const btn = document.getElementById("saveToDevice");
+    btn.disabled = true;
+    btn.textContent = "저장 중...";
+    await VideoStore.saveVideo(pendingFile);
+    btn.textContent = "저장됨 ✓";
+    await loadDeviceVideos();
+    setTimeout(() => { btn.hidden = true; btn.disabled = false; btn.textContent = "이 기기에 저장해서 계속 쓰기"; }, 1200);
   });
 
   document.getElementById("openEditor").addEventListener("click", () => {
@@ -136,6 +185,7 @@
 
   refreshChartList();
   loadRepoVideos();
+  loadDeviceVideos();
   updateButtons();
 
   if ("serviceWorker" in navigator) {

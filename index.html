@@ -25,10 +25,17 @@
     <p class="hint">이 목록은 저장소(videos/)에 올려둔 영상입니다. 컴퓨터에서 올려두면 폰에서는 고르기만 하면 됩니다.</p>
   </section>
 
+  <section class="card">
+    <h2>내 기기에 저장된 영상</h2>
+    <ul id="deviceVideoList" class="chart-list"></ul>
+    <p class="hint">이 기기의 브라우저 안에만 저장됩니다. 서버로 업로드되지 않아요.</p>
+  </section>
+
   <details class="card">
-    <summary>직접 파일 선택 (다른 영상으로 테스트)</summary>
+    <summary>새 영상 파일 선택</summary>
     <input id="videoFile" type="file" accept="video/*" />
     <p id="videoInfo" class="hint">영상을 선택하면 그 영상 이름으로 비트맵이 저장/불러오기 됩니다.</p>
+    <button id="saveToDevice" class="btn" hidden>이 기기에 저장해서 계속 쓰기</button>
   </details>
 
   <section class="card actions">
@@ -89,6 +96,7 @@
 </div>
 
 <script src="js/storage.js"></script>
+<script src="js/video-store.js"></script>
 <script src="js/haptics.js"></script>
 <script src="js/spinner.js"></script>
 <script src="js/fullscreen.js"></script>
