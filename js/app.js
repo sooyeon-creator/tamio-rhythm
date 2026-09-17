@@ -159,6 +159,61 @@
     }
   }
 
+  // Pairs a shared chart's note timing (from charts/, no video attached)
+  // with whatever local video file the person picks, so the copyrighted
+  // video never has to travel with the link — only the timing does.
+  function pickVideoForSharedChart(entryName, chartUrl) {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "video/*";
+    input.onchange = async () => {
+      const file = input.files[0];
+      if (!file) return;
+      Loader.show();
+      try {
+        const res = await fetch(chartUrl, { cache: "no-store" });
+        if (!res.ok) throw new Error("chart fetch failed");
+        const sharedChart = await res.json();
+        const key = Storage.keyFor(file);
+        const chart = { key, ...sharedChart, videoName: entryName };
+        Storage.saveChart(key, chart);
+        selectSource({ key, name: entryName, url: URL.createObjectURL(file), isBlob: true });
+        refreshChartList();
+      } catch {
+        alert("비트맵을 불러오지 못했습니다.");
+      } finally {
+        Loader.hide();
+      }
+    };
+    input.click();
+  }
+
+  async function loadSharedCharts() {
+    const listEl = document.getElementById("sharedChartList");
+    try {
+      const res = await fetch("charts/manifest.json", { cache: "no-store" });
+      if (!res.ok) throw new Error("no manifest");
+      const entries = await res.json();
+      if (!entries.length) {
+        listEl.innerHTML = '<li class="hint">아직 공유된 비트맵이 없습니다.</li>';
+        return;
+      }
+      listEl.innerHTML = "";
+      for (const entry of entries) {
+        const li = document.createElement("li");
+        li.innerHTML = `<span>${entry.name}</span>`;
+        const useBtn = document.createElement("button");
+        useBtn.className = "seek";
+        useBtn.textContent = "영상 선택하고 플레이";
+        useBtn.onclick = () => pickVideoForSharedChart(entry.name, `charts/${entry.file}`);
+        li.appendChild(useBtn);
+        listEl.appendChild(li);
+      }
+    } catch {
+      listEl.innerHTML = '<li class="hint">charts/manifest.json을 불러오지 못했습니다.</li>';
+    }
+  }
+
   let pendingFile = null;
 
   document.getElementById("videoFile").addEventListener("change", (e) => {
@@ -211,7 +266,28 @@
   refreshChartList();
   loadRepoVideos();
   loadDeviceVideos();
+  loadSharedCharts();
   updateButtons();
+
+  // A link like ?chart=hateful-person shows one button for that shared
+  // chart right at the top. Browsers require an actual click before a
+  // file picker can open, so this can't auto-open the picker on load —
+  // but it's still just the one tap once the page is open.
+  const sharedParam = new URLSearchParams(location.search).get("chart");
+  if (sharedParam) {
+    fetch("charts/manifest.json", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((entries) => {
+        const entry = entries.find((e) => e.file.replace(/\.json$/, "") === sharedParam);
+        if (!entry) return;
+        const banner = document.getElementById("sharedLinkBanner");
+        const btn = document.getElementById("sharedLinkButton");
+        btn.textContent = `"${entry.name}" 영상 선택하고 바로 플레이`;
+        btn.onclick = () => pickVideoForSharedChart(entry.name, `charts/${entry.file}`);
+        banner.hidden = false;
+      })
+      .catch(() => {});
+  }
 
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {

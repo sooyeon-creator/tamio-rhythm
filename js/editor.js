@@ -252,6 +252,7 @@ const Editor = (() => {
     };
 
     el("editorSave").onclick = save;
+    el("editorExport").onclick = exportChart;
     el("editorBack").onclick = () => { Fullscreen.exit(); teardown(() => onDone(null)); };
 
     el("editorEdit").onclick = () => {
@@ -288,20 +289,41 @@ const Editor = (() => {
     };
   }
 
-  function save() {
-    video.pause();
-    Fullscreen.exit();
-    const key = source.key;
-    const chart = {
-      key,
+  function buildChart() {
+    return {
       videoName: source.name,
       duration: video.duration || 0,
       laneCount: LANES,
       notes: notes.slice().sort((a, b) => a.time - b.time),
       createdAt: Date.now(),
     };
+  }
+
+  function save() {
+    video.pause();
+    Fullscreen.exit();
+    const key = source.key;
+    const chart = { key, ...buildChart() };
     Storage.saveChart(key, chart);
     teardown(() => onDone(chart));
+  }
+
+  // Downloads just the note timing (no video, no key tied to this device)
+  // as a JSON file — this is what gets committed to charts/ so a link can
+  // hand the exact same timing to someone else, independent of who has
+  // the matching video file.
+  function exportChart() {
+    const chart = buildChart();
+    const blob = new Blob([JSON.stringify(chart, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const slug = chart.videoName.replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9가-힣_-]+/g, "-");
+    a.href = url;
+    a.download = `${slug || "chart"}.tamio.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   function teardown(after) {
