@@ -19,6 +19,15 @@
     }
   }
 
+  function renameEntry(key, currentName, onRenamed) {
+    const next = window.prompt("영상 제목", currentName);
+    if (next === null) return;
+    const trimmed = next.trim();
+    if (!trimmed) return;
+    Storage.setDisplayName(key, trimmed);
+    onRenamed();
+  }
+
   function refreshChartList() {
     const listEl = document.getElementById("chartList");
     const charts = Storage.listCharts();
@@ -28,16 +37,21 @@
     }
     listEl.innerHTML = "";
     for (const entry of charts) {
+      const name = Storage.getDisplayName(entry.key, entry.videoName);
       const li = document.createElement("li");
       const best = Storage.getBest(entry.key);
       const bestText = best ? ` · Best ${best.score}` : "";
-      li.innerHTML = `<span>${entry.videoName} (${entry.noteCount} notes)${bestText}</span>`;
+      li.innerHTML = `<span>${name} (${entry.noteCount} notes)${bestText}</span>`;
+      const rename = document.createElement("button");
+      rename.textContent = "이름변경";
+      rename.onclick = () => renameEntry(entry.key, name, () => { refreshChartList(); loadRepoVideos(); loadDeviceVideos(); });
       const del = document.createElement("button");
       del.textContent = "삭제";
       del.onclick = () => {
         Storage.deleteChart(entry.key);
         refreshChartList();
       };
+      li.appendChild(rename);
       li.appendChild(del);
       listEl.appendChild(li);
     }
@@ -82,16 +96,21 @@
       listEl.innerHTML = "";
       for (const entry of entries) {
         const key = `repo:${entry.file}`;
+        const name = Storage.getDisplayName(key, entry.name);
         const li = document.createElement("li");
         li.className = "selectable";
         li.dataset.key = key;
         const chart = Storage.getChart(key);
         const best = Storage.getBest(key);
         const meta = chart ? `${chart.notes.length} notes${best ? ` · Best ${best.score}` : ""}` : "비트맵 없음";
-        li.innerHTML = `<span>${entry.name}</span><span class="hint">${meta}</span>`;
+        li.innerHTML = `<span>${name}</span><span class="hint">${meta}</span>`;
         li.onclick = () => {
-          selectSource({ key, name: entry.name, url: `videos/${entry.file}`, isBlob: false });
+          selectSource({ key, name, url: `videos/${entry.file}`, isBlob: false });
         };
+        const rename = document.createElement("button");
+        rename.textContent = "이름변경";
+        rename.onclick = (e) => { e.stopPropagation(); renameEntry(key, name, loadRepoVideos); };
+        li.appendChild(rename);
         listEl.appendChild(li);
       }
     } catch {
@@ -111,18 +130,22 @@
     listEl.innerHTML = "";
     for (const v of videos) {
       const key = v.key;
+      const name = Storage.getDisplayName(key, v.name);
       const li = document.createElement("li");
       li.className = "selectable";
       li.dataset.key = key;
       const chart = Storage.getChart(key);
       const best = Storage.getBest(key);
       const meta = chart ? `${chart.notes.length} notes${best ? ` · Best ${best.score}` : ""}` : "비트맵 없음";
-      li.innerHTML = `<span>${v.name}</span><span class="hint">${meta}</span>`;
+      li.innerHTML = `<span>${name}</span><span class="hint">${meta}</span>`;
       li.onclick = async () => {
         const record = await VideoStore.getVideo(key);
         if (!record) return;
-        selectSource({ key, name: record.name, url: URL.createObjectURL(record.blob), isBlob: true });
+        selectSource({ key, name, url: URL.createObjectURL(record.blob), isBlob: true });
       };
+      const rename = document.createElement("button");
+      rename.textContent = "이름변경";
+      rename.onclick = (e) => { e.stopPropagation(); renameEntry(key, name, loadDeviceVideos); };
       const del = document.createElement("button");
       del.textContent = "삭제";
       del.onclick = async (e) => {
@@ -130,6 +153,7 @@
         await VideoStore.deleteVideo(key);
         loadDeviceVideos();
       };
+      li.appendChild(rename);
       li.appendChild(del);
       listEl.appendChild(li);
     }
@@ -142,7 +166,8 @@
     pendingFile = file;
     document.getElementById("saveToDevice").hidden = !file;
     if (!file) return;
-    selectSource({ key: Storage.keyFor(file), name: file.name, url: URL.createObjectURL(file), isBlob: true });
+    const key = Storage.keyFor(file);
+    selectSource({ key, name: Storage.getDisplayName(key, file.name), url: URL.createObjectURL(file), isBlob: true });
   });
 
   document.getElementById("saveToDevice").addEventListener("click", async () => {

@@ -4,6 +4,7 @@ const Storage = (() => {
   const CHART_PREFIX = "tamio:chart:";
   const SCORE_PREFIX = "tamio:best:";
   const INDEX_KEY = "tamio:chartIndex";
+  const NAME_PREFIX = "tamio:name:";
 
   function keyFor(file) {
     return `${file.name}::${file.size}`;
@@ -61,5 +62,27 @@ const Storage = (() => {
     return loadIndex();
   }
 
-  return { keyFor, getChart, saveChart, deleteChart, getBest, saveBest, listCharts };
+  // A display-name override, independent of where the video came from
+  // (repo manifest, device storage, or a local pick) — renaming just
+  // changes the label everywhere it's shown, never the matching key.
+  function getDisplayName(key, fallback) {
+    return localStorage.getItem(NAME_PREFIX + key) || fallback;
+  }
+
+  function setDisplayName(key, name) {
+    localStorage.setItem(NAME_PREFIX + key, name);
+    const index = loadIndex();
+    const entry = index.find((c) => c.key === key);
+    if (entry) {
+      entry.videoName = name;
+      saveIndex(index);
+    }
+    const chart = getChart(key);
+    if (chart) {
+      chart.videoName = name;
+      localStorage.setItem(CHART_PREFIX + key, JSON.stringify(chart));
+    }
+  }
+
+  return { keyFor, getChart, saveChart, deleteChart, getBest, saveBest, listCharts, getDisplayName, setDisplayName };
 })();
