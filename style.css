@@ -86,11 +86,21 @@ details.card input[type="file"] { margin-top: 10px; }
 /* --- Editor / Player shared stage --- */
 .stage-wrap {
   position: fixed; inset: 0; background: #000; overflow: hidden;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+}
+.stage-wrap * {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
 }
 .stage-video {
   position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.35;
 }
-.stage-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.stage-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 3; }
 .stage-wrap::before {
   content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none;
   background: linear-gradient(to bottom, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.45) 60%, rgba(0,0,0,0.7) 100%);

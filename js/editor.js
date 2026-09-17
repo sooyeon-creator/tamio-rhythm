@@ -4,8 +4,9 @@
 const Editor = (() => {
   const LANES = 6;
   const HOLD_THRESHOLD_MS = 150;
+  const LEAD_TIME = 1.8; // seconds a note takes to fall from top to the hit line, matches Player
 
-  let video, lanesEl, timeEl, countEl, playPauseBtn, centerMsg;
+  let video, canvas, ctx, lanesEl, timeEl, countEl, playPauseBtn, centerMsg;
   let notePanel, noteRowsEl;
   let notes = [];
   let activeTouches = new Map(); // pointerId -> { lane, startTime, currentLane }
@@ -32,6 +33,84 @@ const Editor = (() => {
     return laneEl ? Number(laneEl.dataset.lane) : null;
   }
 
+  function resizeCanvas() {
+    canvas.width = canvas.clientWidth * devicePixelRatio;
+    canvas.height = canvas.clientHeight * devicePixelRatio;
+  }
+
+  function laneCenterX(i) {
+    const w = canvas.width / LANES;
+    return w * (i + 0.5);
+  }
+
+  function yForTime(t, now) {
+    const hitLineY = canvas.height * 0.86;
+    const progress = (t - now) / LEAD_TIME; // 1 = just spawned, 0 = at hit line
+    return hitLineY * (1 - progress);
+  }
+
+  function draw(now) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const r = 16 * devicePixelRatio;
+
+    for (const note of notes) {
+      if (note.time - now > LEAD_TIME + 0.3) continue;
+      if (now - (note.holdEnd ?? note.time) > 0.6) continue;
+
+      const x = laneCenterX(note.lane);
+      if (note.type === "tap") {
+        const y = yForTime(note.time, now);
+        ctx.fillStyle = "#6ee7ff";
+        ctx.beginPath();
+        ctx.roundRect(x - r, y - r * 0.4, r * 2, r * 0.8, r * 0.4);
+        ctx.fill();
+      } else if (note.type === "hold") {
+        const yStart = yForTime(note.time, now);
+        const yEnd = yForTime(note.holdEnd, now);
+        ctx.fillStyle = "rgba(110,231,255,0.55)";
+        ctx.fillRect(x - r * 0.6, Math.min(yEnd, yStart), r * 1.2, Math.abs(yStart - yEnd) + r * 0.6);
+        ctx.fillStyle = "#6ee7ff";
+        ctx.beginPath();
+        ctx.roundRect(x - r, yStart - r * 0.4, r * 2, r * 0.8, r * 0.4);
+        ctx.fill();
+      } else if (note.type === "slide") {
+        const x2 = laneCenterX(note.toLane);
+        const yStart = yForTime(note.time, now);
+        const yEnd = yForTime(note.holdEnd, now);
+        ctx.strokeStyle = "rgba(255,110,199,0.6)";
+        ctx.lineWidth = r * 0.8;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(x, yStart);
+        ctx.lineTo(x2, yEnd);
+        ctx.stroke();
+        ctx.fillStyle = "#ff6ec7";
+        ctx.beginPath();
+        ctx.arc(x, yStart, r * 0.7, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // Live preview of whatever is currently being held/dragged, drawn right
+    // at the hit line so a slide's path is visible while it's still moving.
+    const hitLineY = canvas.height * 0.86;
+    for (const touch of activeTouches.values()) {
+      const x1 = laneCenterX(touch.lane);
+      const x2 = laneCenterX(touch.currentLane);
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = r * 0.7;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(x1, hitLineY);
+      ctx.lineTo(x2, hitLineY);
+      ctx.stroke();
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.arc(x2, hitLineY, r * 0.8, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
   function flashLane(index) {
     const laneEl = lanesEl.children[index];
     if (!laneEl) return;
@@ -51,6 +130,7 @@ const Editor = (() => {
   function onPointerMove(e) {
     const touch = activeTouches.get(e.pointerId);
     if (!touch) return;
+    e.preventDefault();
     const lane = laneFromPoint(e.clientX, e.clientY);
     if (lane !== null && lane !== touch.currentLane) {
       touch.currentLane = lane;
@@ -84,7 +164,9 @@ const Editor = (() => {
   }
 
   function tick() {
-    timeEl.textContent = video.currentTime.toFixed(2);
+    const now = video.currentTime;
+    timeEl.textContent = now.toFixed(2);
+    draw(now);
     rafId = requestAnimationFrame(tick);
   }
 
@@ -141,6 +223,8 @@ const Editor = (() => {
     activeTouches.clear();
 
     video = el("editorVideo");
+    canvas = el("editorCanvas");
+    ctx = canvas.getContext("2d");
     lanesEl = el("editorLanes");
     timeEl = el("editorTime");
     countEl = el("editorNoteCount");
@@ -161,6 +245,8 @@ const Editor = (() => {
     el("editorStart").hidden = false;
 
     buildLanes();
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
 
     lanesEl.onpointerdown = onPointerDown;
     lanesEl.onpointermove = onPointerMove;
@@ -231,6 +317,7 @@ const Editor = (() => {
   function teardown(after) {
     if (rafId) cancelAnimationFrame(rafId);
     rafId = null;
+    window.removeEventListener("resize", resizeCanvas);
     if (video) {
       video.pause();
       video.onended = null;
