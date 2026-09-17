@@ -168,6 +168,7 @@ const Editor = (() => {
     lanesEl.onpointercancel = onPointerUp;
 
     el("editorStart").onclick = () => {
+      Fullscreen.enter();
       centerMsg.hidden = true;
       video.play().catch(() => {});
       playPauseBtn.textContent = "⏸ 일시정지";
@@ -175,7 +176,7 @@ const Editor = (() => {
     };
 
     el("editorSave").onclick = save;
-    el("editorBack").onclick = () => teardown(() => onDone(null));
+    el("editorBack").onclick = () => { Fullscreen.exit(); teardown(() => onDone(null)); };
 
     el("editorEdit").onclick = () => {
       video.pause();
@@ -213,6 +214,7 @@ const Editor = (() => {
 
   function save() {
     video.pause();
+    Fullscreen.exit();
     const key = source.key;
     const chart = {
       key,

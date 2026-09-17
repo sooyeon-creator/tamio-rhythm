@@ -236,10 +236,11 @@ const Player = (() => {
       <button id="playerExit" class="btn">나가기</button>
     `;
     el("playerRetry").onclick = () => start();
-    el("playerExit").onclick = () => teardown(() => onDone());
+    el("playerExit").onclick = () => { Fullscreen.exit(); teardown(() => onDone()); };
   }
 
   function start() {
+    Fullscreen.enter();
     score = 0; combo = 0; maxCombo = 0;
     counts = { perfect: 0, good: 0, miss: 0 };
     notes = chart.notes.map((n) => ({ ...n, judged: false }));
@@ -282,7 +283,8 @@ const Player = (() => {
       <button id="playerExitTop" class="btn">나가기</button>
     `;
     el("playerStart").onclick = start;
-    el("playerExitTop").onclick = () => teardown(() => onDone());
+    el("playerExitTop").onclick = () => { Fullscreen.exit(); teardown(() => onDone()); };
+    el("playerBack").onclick = () => { Fullscreen.exit(); teardown(() => onDone()); };
 
     lanesEl.onpointerdown = onPointerDown;
     lanesEl.onpointerup = onPointerUp;
