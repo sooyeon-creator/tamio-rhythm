@@ -3,7 +3,7 @@
   "short_name": "Tamio",
   "start_url": "./index.html",
   "display": "fullscreen",
-  "orientation": "portrait",
+  "orientation": "any",
   "background_color": "#0b0b14",
   "theme_color": "#0b0b14",
   "icons": [

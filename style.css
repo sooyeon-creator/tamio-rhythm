@@ -88,16 +88,20 @@ details.card input[type="file"] { margin-top: 10px; }
   position: fixed; inset: 0; background: #000; overflow: hidden;
 }
 .stage-video {
-  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.55;
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.35;
 }
 .stage-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.stage-wrap::before {
+  content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.45) 60%, rgba(0,0,0,0.7) 100%);
+}
 .lanes {
   position: absolute; left: 0; right: 0; bottom: 0; height: 100%;
   display: grid; grid-template-columns: repeat(var(--lane-count), 1fr);
   z-index: 5;
 }
 .lane {
-  border-left: 1px solid rgba(255,255,255,0.08);
+  border-left: 1px solid rgba(255,255,255,0.14);
   display: flex; align-items: flex-end; justify-content: center;
   -webkit-tap-highlight-color: transparent;
 }
