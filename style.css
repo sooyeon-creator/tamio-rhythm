@@ -142,8 +142,22 @@ details.card input[type="file"] { margin-top: 10px; }
 .hit-line {
   position: absolute; left: 0; right: 0; bottom: 14%; height: 4px;
   background: rgba(255,255,255,0.35); z-index: 4;
+  transition: background 0.08s, box-shadow 0.08s;
+}
+.hit-line.glow {
+  background: #ffffff;
+  box-shadow: 0 0 14px 4px rgba(255,255,255,0.9), 0 0 34px 12px rgba(255,255,255,0.45);
 }
 .lane.flash { background: rgba(110,231,255,0.25); }
+
+@keyframes screen-shake {
+  0%, 100% { transform: translate(0, 0); }
+  20% { transform: translate(-2px, 1px); }
+  40% { transform: translate(2px, -1px); }
+  60% { transform: translate(-1px, 2px); }
+  80% { transform: translate(1px, -2px); }
+}
+.stage-wrap.holding-shake { animation: screen-shake 0.12s linear infinite; }
 
 .top-bar {
   position: absolute; top: 0; left: 0; right: 0; z-index: 10;

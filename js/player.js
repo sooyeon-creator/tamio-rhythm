@@ -6,11 +6,12 @@ const Player = (() => {
   const GOOD_MS = 120;
   const MISS_MS = 200;
 
-  let video, canvas, ctx, lanesEl, scoreEl, comboEl, toastEl, centerMsg;
+  let video, canvas, ctx, lanesEl, scoreEl, comboEl, toastEl, centerMsg, stageEl, hitLineEl;
   let source = null, chart = null, laneCount = 6;
   let notes = [];
   let heldPointers = new Map(); // pointerId -> { note, lane }
   let pressedLanes = new Map(); // pointerId -> lane, tracked for every press so the lit lane always clears
+  let activeHoldVisuals = 0; // count of concurrently-held on-time notes, so multi-touch holds don't cut the effect short
   let score = 0, combo = 0, maxCombo = 0;
   let counts = { perfect: 0, good: 0, miss: 0 };
   let rafId = null;
@@ -58,6 +59,24 @@ const Player = (() => {
     const laneEl = lanesEl.children[index];
     if (!laneEl) return;
     laneEl.classList.toggle("flash", lit);
+  }
+
+  // Screen shake + a glowing hit line while a hold/slide is being held on
+  // time — the same "you're pressing it correctly" cue as the haptic
+  // tremble, but visible. Reference-counted so overlapping multi-touch
+  // holds don't turn it off the moment just one of them is released.
+  function startHoldVisual() {
+    activeHoldVisuals++;
+    updateHoldVisual();
+  }
+  function stopHoldVisual() {
+    activeHoldVisuals = Math.max(0, activeHoldVisuals - 1);
+    updateHoldVisual();
+  }
+  function updateHoldVisual() {
+    const active = activeHoldVisuals > 0;
+    stageEl.classList.toggle("holding-shake", active);
+    hitLineEl.classList.toggle("glow", active);
   }
 
   function showToast(judgment) {
@@ -117,6 +136,7 @@ const Player = (() => {
     if ((note.type === "hold" || note.type === "slide") && startJudgment !== "miss") {
       heldPointers.set(e.pointerId, { note, lane });
       Haptics.holdStart((note.holdEnd - now) * 1000);
+      startHoldVisual();
     }
   }
 
@@ -130,6 +150,7 @@ const Player = (() => {
     if (!held) return;
     heldPointers.delete(e.pointerId);
     Haptics.holdStop();
+    stopHoldVisual();
     const { note } = held;
     const now = video.currentTime;
     if (note.type === "hold") {
@@ -154,6 +175,7 @@ const Player = (() => {
       if (now - endTime > MISS_MS / 1000) {
         heldPointers.delete(pointerId);
         Haptics.holdStop();
+        stopHoldVisual();
       }
     }
   }
@@ -173,9 +195,11 @@ const Player = (() => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const r = 16 * devicePixelRatio;
     for (const note of notes) {
-      if (note.judged && note.type === "tap") continue;
+      // Once a note is resolved (hit or missed) and its action point has
+      // reached the hit line, it's erased immediately rather than lingering.
+      const endPoint = note.holdEnd ?? note.time;
+      if (note.judged && now >= endPoint) continue;
       if (note.time - now > LEAD_TIME + 0.3) continue;
-      if (note.time - now < -MISS_MS / 1000 - 0.3 && note.judged) continue;
 
       const x = laneCenterX(note.lane);
       if (note.type === "tap") {
@@ -219,6 +243,8 @@ const Player = (() => {
     running = false;
     if (rafId) cancelAnimationFrame(rafId);
     Haptics.holdStop();
+    activeHoldVisuals = 0;
+    updateHoldVisual();
     const total = counts.perfect + counts.good + counts.miss;
     const accuracy = total ? ((counts.perfect + counts.good * 0.5) / total) * 100 : 0;
     const result = { score, maxCombo, accuracy, counts, updatedAt: Date.now() };
@@ -247,6 +273,8 @@ const Player = (() => {
     notes = chart.notes.map((n) => ({ ...n, judged: false }));
     heldPointers.clear();
     pressedLanes.clear();
+    activeHoldVisuals = 0;
+    updateHoldVisual();
     scoreEl.textContent = "0";
     comboEl.textContent = "0";
     centerMsg.hidden = true;
@@ -270,6 +298,8 @@ const Player = (() => {
     comboEl = el("playerCombo");
     toastEl = el("judgmentToast");
     centerMsg = el("playerCenterMsg");
+    stageEl = el("view-player");
+    hitLineEl = el("playerHitLine");
 
     buildLanes();
     resizeCanvas();
@@ -310,6 +340,8 @@ const Player = (() => {
     if (rafId) cancelAnimationFrame(rafId);
     rafId = null;
     Haptics.holdStop();
+    activeHoldVisuals = 0;
+    if (stageEl) updateHoldVisual();
     Loader.hide();
     window.removeEventListener("resize", resizeCanvas);
     if (video) {
