@@ -61,10 +61,10 @@ const Player = (() => {
     laneEl.classList.toggle("flash", lit);
   }
 
-  // Screen shake + a glowing hit line while a hold/slide is being held on
-  // time — the same "you're pressing it correctly" cue as the haptic
-  // tremble, but visible. Reference-counted so overlapping multi-touch
-  // holds don't turn it off the moment just one of them is released.
+  // A glowing hit line while a hold/slide is being held on time — the same
+  // "you're pressing it correctly" cue as the haptic tremble, but visible.
+  // Reference-counted so overlapping multi-touch holds don't turn it off
+  // the moment just one of them is released.
   function startHoldVisual() {
     activeHoldVisuals++;
     updateHoldVisual();
@@ -74,9 +74,15 @@ const Player = (() => {
     updateHoldVisual();
   }
   function updateHoldVisual() {
-    const active = activeHoldVisuals > 0;
-    stageEl.classList.toggle("holding-shake", active);
-    hitLineEl.classList.toggle("glow", active);
+    hitLineEl.classList.toggle("glow", activeHoldVisuals > 0);
+  }
+
+  // A brief, subtle screen shake on a miss. Restarts the animation even if
+  // one is already mid-play by forcing a reflow between remove and re-add.
+  function triggerMissShake() {
+    stageEl.classList.remove("miss-shake");
+    void stageEl.offsetWidth;
+    stageEl.classList.add("miss-shake");
   }
 
   function showToast(judgment) {
@@ -94,6 +100,7 @@ const Player = (() => {
     if (judgment === "miss") {
       combo = 0;
       Haptics.miss();
+      triggerMissShake();
     } else {
       combo++;
       maxCombo = Math.max(maxCombo, combo);
@@ -140,6 +147,18 @@ const Player = (() => {
     }
   }
 
+  function onPointerMove(e) {
+    const held = heldPointers.get(e.pointerId);
+    if (!held) return;
+    e.preventDefault();
+    const lane = laneFromPoint(e.clientX, e.clientY);
+    if (lane !== null && lane !== held.lane) {
+      setLaneLit(held.lane, false);
+      held.lane = lane;
+      setLaneLit(lane, true);
+    }
+  }
+
   function onPointerUp(e) {
     const pressedLane = pressedLanes.get(e.pointerId);
     if (pressedLane !== undefined) {
@@ -156,9 +175,10 @@ const Player = (() => {
     if (note.type === "hold") {
       applyJudgment(judge(now - note.holdEnd));
     } else if (note.type === "slide") {
-      const currentLane = laneFromPoint(e.clientX, e.clientY);
-      const laneOk = currentLane === note.toLane;
-      applyJudgment(laneOk ? judge(now - note.holdEnd) : "miss");
+      // A slide only needs to land on the right lane — matching a slide's
+      // exact release timing by feel is unreasonably hard, so timing isn't
+      // judged here, only where the finger ended up.
+      applyJudgment(held.lane === note.toLane ? "good" : "miss");
     }
   }
 
@@ -176,6 +196,9 @@ const Player = (() => {
         heldPointers.delete(pointerId);
         Haptics.holdStop();
         stopHoldVisual();
+        // Still held past the note's window without releasing: resolve it
+        // now instead of silently dropping it unjudged.
+        applyJudgment(held.note.type === "slide" && held.lane === held.note.toLane ? "good" : "miss");
       }
     }
   }
@@ -331,6 +354,7 @@ const Player = (() => {
     el("playerBack").onclick = () => { Fullscreen.exit(); teardown(() => onDone()); };
 
     lanesEl.onpointerdown = onPointerDown;
+    lanesEl.onpointermove = onPointerMove;
     lanesEl.onpointerup = onPointerUp;
     lanesEl.onpointercancel = onPointerUp;
   }
@@ -351,6 +375,7 @@ const Player = (() => {
       video.load();
     }
     lanesEl.onpointerdown = null;
+    lanesEl.onpointermove = null;
     lanesEl.onpointerup = null;
     lanesEl.onpointercancel = null;
     if (after) after();

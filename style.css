@@ -150,14 +150,14 @@ details.card input[type="file"] { margin-top: 10px; }
 }
 .lane.flash { background: rgba(110,231,255,0.25); }
 
-@keyframes screen-shake {
+@keyframes miss-shake {
   0%, 100% { transform: translate(0, 0); }
-  20% { transform: translate(-2px, 1px); }
-  40% { transform: translate(2px, -1px); }
-  60% { transform: translate(-1px, 2px); }
-  80% { transform: translate(1px, -2px); }
+  20% { transform: translate(-1.2px, 0.6px); }
+  40% { transform: translate(1.2px, -0.6px); }
+  60% { transform: translate(-0.8px, 1px); }
+  80% { transform: translate(0.8px, -1px); }
 }
-.stage-wrap.holding-shake { animation: screen-shake 0.12s linear infinite; }
+.stage-wrap.miss-shake { animation: miss-shake 0.16s linear 1; }
 
 .top-bar {
   position: absolute; top: 0; left: 0; right: 0; z-index: 10;
