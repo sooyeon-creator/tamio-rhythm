@@ -111,11 +111,10 @@ const Editor = (() => {
     }
   }
 
-  function flashLane(index) {
+  function setLaneLit(index, lit) {
     const laneEl = lanesEl.children[index];
     if (!laneEl) return;
-    laneEl.classList.add("flash");
-    setTimeout(() => laneEl.classList.remove("flash"), 100);
+    laneEl.classList.toggle("flash", lit);
   }
 
   function onPointerDown(e) {
@@ -124,7 +123,7 @@ const Editor = (() => {
     if (lane === null) return;
     e.preventDefault();
     activeTouches.set(e.pointerId, { lane, startTime: video.currentTime, currentLane: lane });
-    flashLane(lane);
+    setLaneLit(lane, true);
   }
 
   function onPointerMove(e) {
@@ -133,8 +132,9 @@ const Editor = (() => {
     e.preventDefault();
     const lane = laneFromPoint(e.clientX, e.clientY);
     if (lane !== null && lane !== touch.currentLane) {
+      setLaneLit(touch.currentLane, false);
       touch.currentLane = lane;
-      flashLane(lane);
+      setLaneLit(lane, true);
     }
   }
 
@@ -142,6 +142,7 @@ const Editor = (() => {
     const touch = activeTouches.get(e.pointerId);
     if (!touch) return;
     activeTouches.delete(e.pointerId);
+    setLaneLit(touch.currentLane, false);
     const endTime = video.currentTime;
     const durationMs = (endTime - touch.startTime) * 1000;
 

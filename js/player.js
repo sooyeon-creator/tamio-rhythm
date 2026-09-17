@@ -10,6 +10,7 @@ const Player = (() => {
   let source = null, chart = null, laneCount = 6;
   let notes = [];
   let heldPointers = new Map(); // pointerId -> { note, lane }
+  let pressedLanes = new Map(); // pointerId -> lane, tracked for every press so the lit lane always clears
   let score = 0, combo = 0, maxCombo = 0;
   let counts = { perfect: 0, good: 0, miss: 0 };
   let rafId = null;
@@ -53,11 +54,10 @@ const Player = (() => {
     return 0;
   }
 
-  function flashLane(index) {
+  function setLaneLit(index, lit) {
     const laneEl = lanesEl.children[index];
     if (!laneEl) return;
-    laneEl.classList.add("flash");
-    setTimeout(() => laneEl.classList.remove("flash"), 100);
+    laneEl.classList.toggle("flash", lit);
   }
 
   function showToast(judgment) {
@@ -108,7 +108,8 @@ const Player = (() => {
     e.preventDefault();
     const now = video.currentTime;
     const note = findClosestUnjudgedNote(lane, now);
-    flashLane(lane);
+    pressedLanes.set(e.pointerId, lane);
+    setLaneLit(lane, true);
     if (!note) return;
     note.judged = true;
     applyJudgment(judge(now - note.time));
@@ -118,6 +119,11 @@ const Player = (() => {
   }
 
   function onPointerUp(e) {
+    const pressedLane = pressedLanes.get(e.pointerId);
+    if (pressedLane !== undefined) {
+      pressedLanes.delete(e.pointerId);
+      setLaneLit(pressedLane, false);
+    }
     const held = heldPointers.get(e.pointerId);
     if (!held) return;
     heldPointers.delete(e.pointerId);
@@ -245,6 +251,7 @@ const Player = (() => {
     counts = { perfect: 0, good: 0, miss: 0 };
     notes = chart.notes.map((n) => ({ ...n, judged: false }));
     heldPointers.clear();
+    pressedLanes.clear();
     scoreEl.textContent = "0";
     comboEl.textContent = "0";
     centerMsg.hidden = true;
