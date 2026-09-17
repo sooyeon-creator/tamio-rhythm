@@ -1,5 +1,9 @@
 // Wires the home screen to the Editor and Player modules and handles
 // switching between the three full-screen views.
+//
+// A "source" describes where a video comes from, so Editor/Player never
+// need to know if it was picked locally or served from videos/:
+//   { key, name, url, isBlob }
 (() => {
   const views = {
     home: document.getElementById("view-home"),
@@ -7,7 +11,7 @@
     player: document.getElementById("view-player"),
   };
 
-  let selectedFile = null;
+  let currentSource = null;
 
   function showView(name) {
     for (const key of Object.keys(views)) {
@@ -39,57 +43,96 @@
     }
   }
 
-  function updateButtons() {
-    const hasFile = !!selectedFile;
-    document.getElementById("openEditor").disabled = !hasFile;
-    document.getElementById("openPlayer").disabled = !hasFile || !currentChartForFile();
+  function currentChart() {
+    if (!currentSource) return null;
+    return Storage.getChart(currentSource.key);
   }
 
-  function currentChartForFile() {
-    if (!selectedFile) return null;
-    return Storage.getChart(Storage.keyFor(selectedFile));
+  function updateButtons() {
+    document.getElementById("openEditor").disabled = !currentSource;
+    document.getElementById("openPlayer").disabled = !currentSource || !currentChart();
+  }
+
+  function selectSource(source) {
+    currentSource = source;
+    const chart = currentChart();
+    const info = document.getElementById("videoInfo");
+    if (info) {
+      info.textContent = chart
+        ? `"${source.name}" — 저장된 비트맵 ${chart.notes.length}개 노트 발견`
+        : `"${source.name}" — 아직 비트맵이 없습니다. 에디터에서 만들어보세요.`;
+    }
+    document.querySelectorAll("#repoVideoList li.selectable").forEach((li) => {
+      li.classList.toggle("selected", li.dataset.key === source.key);
+    });
+    updateButtons();
+  }
+
+  async function loadRepoVideos() {
+    const listEl = document.getElementById("repoVideoList");
+    try {
+      const res = await fetch("videos/manifest.json", { cache: "no-store" });
+      if (!res.ok) throw new Error("no manifest");
+      const entries = await res.json();
+      if (!entries.length) {
+        listEl.innerHTML = '<li class="hint">videos/ 폴더에 등록된 영상이 없습니다.</li>';
+        return;
+      }
+      listEl.innerHTML = "";
+      for (const entry of entries) {
+        const key = `repo:${entry.file}`;
+        const li = document.createElement("li");
+        li.className = "selectable";
+        li.dataset.key = key;
+        const chart = Storage.getChart(key);
+        const best = Storage.getBest(key);
+        const meta = chart ? `${chart.notes.length} notes${best ? ` · Best ${best.score}` : ""}` : "비트맵 없음";
+        li.innerHTML = `<span>${entry.name}</span><span class="hint">${meta}</span>`;
+        li.onclick = () => {
+          selectSource({ key, name: entry.name, url: `videos/${entry.file}`, isBlob: false });
+        };
+        listEl.appendChild(li);
+      }
+    } catch {
+      listEl.innerHTML = '<li class="hint">videos/manifest.json을 불러오지 못했습니다.</li>';
+    }
   }
 
   document.getElementById("videoFile").addEventListener("change", (e) => {
-    selectedFile = e.target.files[0] || null;
-    const info = document.getElementById("videoInfo");
-    if (selectedFile) {
-      const chart = currentChartForFile();
-      info.textContent = chart
-        ? `"${selectedFile.name}" — 저장된 비트맵 ${chart.notes.length}개 노트 발견`
-        : `"${selectedFile.name}" — 아직 비트맵이 없습니다. 에디터에서 만들어보세요.`;
-    } else {
-      info.textContent = "영상을 선택하면 그 영상 이름으로 비트맵이 저장/불러오기 됩니다.";
-    }
-    updateButtons();
+    const file = e.target.files[0] || null;
+    if (!file) return;
+    selectSource({ key: Storage.keyFor(file), name: file.name, url: URL.createObjectURL(file), isBlob: true });
   });
 
   document.getElementById("openEditor").addEventListener("click", () => {
-    if (!selectedFile) return;
+    if (!currentSource) return;
     showView("editor");
-    Editor.init(selectedFile, {
+    Editor.init(currentSource, {
       onDone: () => {
         showView("home");
         refreshChartList();
+        loadRepoVideos();
         updateButtons();
       },
     });
   });
 
   document.getElementById("openPlayer").addEventListener("click", () => {
-    const chart = currentChartForFile();
-    if (!selectedFile || !chart) return;
+    const chart = currentChart();
+    if (!currentSource || !chart) return;
     showView("player");
-    Player.init(selectedFile, chart, {
+    Player.init(currentSource, chart, {
       onDone: () => {
         showView("home");
         refreshChartList();
+        loadRepoVideos();
         updateButtons();
       },
     });
   });
 
   refreshChartList();
+  loadRepoVideos();
   updateButtons();
 
   if ("serviceWorker" in navigator) {

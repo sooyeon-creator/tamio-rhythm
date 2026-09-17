@@ -9,7 +9,7 @@ const Editor = (() => {
   let notePanel, noteRowsEl;
   let notes = [];
   let activeTouches = new Map(); // pointerId -> { lane, startTime, currentLane }
-  let file = null;
+  let source = null;
   let rafId = null;
   let onDone = null;
 
@@ -134,8 +134,8 @@ const Editor = (() => {
     });
   }
 
-  function init(selectedFile, callbacks) {
-    file = selectedFile;
+  function init(selectedSource, callbacks) {
+    source = selectedSource;
     onDone = callbacks.onDone;
     notes = [];
     activeTouches.clear();
@@ -150,7 +150,7 @@ const Editor = (() => {
     noteRowsEl = el("editorNoteRows");
     notePanel.hidden = true;
 
-    video.src = URL.createObjectURL(file);
+    video.src = source.url;
     video.currentTime = 0;
     countEl.textContent = "0";
     timeEl.textContent = "0.00";
@@ -213,11 +213,10 @@ const Editor = (() => {
 
   function save() {
     video.pause();
-    const key = Storage.keyFor(file);
+    const key = source.key;
     const chart = {
       key,
-      videoName: file.name,
-      videoSize: file.size,
+      videoName: source.name,
       duration: video.duration || 0,
       laneCount: LANES,
       notes: notes.slice().sort((a, b) => a.time - b.time),
@@ -233,7 +232,7 @@ const Editor = (() => {
     if (video) {
       video.pause();
       video.onended = null;
-      if (video.src) URL.revokeObjectURL(video.src);
+      if (source && source.isBlob && video.src) URL.revokeObjectURL(video.src);
       video.removeAttribute("src");
       video.load();
     }

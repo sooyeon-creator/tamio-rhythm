@@ -7,7 +7,7 @@ const Player = (() => {
   const MISS_MS = 200;
 
   let video, canvas, ctx, lanesEl, scoreEl, comboEl, toastEl, centerMsg;
-  let file = null, chart = null, laneCount = 6;
+  let source = null, chart = null, laneCount = 6;
   let notes = [];
   let heldPointers = new Map(); // pointerId -> { note, lane }
   let score = 0, combo = 0, maxCombo = 0;
@@ -253,8 +253,8 @@ const Player = (() => {
     rafId = requestAnimationFrame(loop);
   }
 
-  function init(selectedFile, selectedChart, callbacks) {
-    file = selectedFile;
+  function init(selectedSource, selectedChart, callbacks) {
+    source = selectedSource;
     chart = selectedChart;
     laneCount = chart.laneCount || 6;
     onDone = callbacks.onDone;
@@ -268,7 +268,7 @@ const Player = (() => {
     toastEl = el("judgmentToast");
     centerMsg = el("playerCenterMsg");
 
-    video.src = URL.createObjectURL(file);
+    video.src = source.url;
     buildLanes();
     resizeCanvas();
     window.addEventListener("resize", resizeCanvas);
@@ -296,7 +296,7 @@ const Player = (() => {
     window.removeEventListener("resize", resizeCanvas);
     if (video) {
       video.pause();
-      if (video.src) URL.revokeObjectURL(video.src);
+      if (source && source.isBlob && video.src) URL.revokeObjectURL(video.src);
       video.removeAttribute("src");
       video.load();
     }

@@ -76,6 +76,13 @@ input[type="file"] { color: var(--text); width: 100%; }
 }
 .chart-list li button { background: none; border: none; color: var(--miss); font-size: 13px; cursor: pointer; }
 
+.chart-list li.selectable { cursor: pointer; border: 1px solid transparent; }
+.chart-list li.selectable:active { background: #262646; }
+.chart-list li.selectable.selected { border-color: var(--accent); background: #1c2d3a; }
+
+details.card summary { cursor: pointer; font-size: 15px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+details.card input[type="file"] { margin-top: 10px; }
+
 /* --- Editor / Player shared stage --- */
 .stage-wrap {
   position: fixed; inset: 0; background: #000; overflow: hidden;
